@@ -1,0 +1,16 @@
+1 - reproject all files
+    - should be a method, you path {folder name}, it reprojects data to {folder name - reprojected}
+    * important: checks if needed, reproject, otherwise, just copy!
+
+2 - create mosaic
+    - having every years files in a folder (2014 - 2015 - ...)
+    - create seasonal mosaics, starting from spring 2014! should be configurable for later
+    - create mosaic with name Mosaic_2014_Spring_B4 or Mosaic_2023_2024_Spring_B4
+    - for both B4 and B5
+
+3 - Generate NDVIs NDVI_2024_Spring
+
+4 - Convert shp file to correct cordinates
+
+5 - Generate NDVI_Per_Reagon_2024_Spring.csv
+

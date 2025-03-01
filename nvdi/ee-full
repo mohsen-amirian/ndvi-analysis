@@ -1,0 +1,118 @@
+var countries = ee.FeatureCollection("USDOS/LSIB_SIMPLE/2017"),
+    l8 = ee.ImageCollection("LANDSAT/LC08/C02/T1_TOA"),
+    l5 = ee.ImageCollection("LANDSAT/LT05/C02/T1_TOA");
+
+var germany = countries.filter(ee.Filter.eq('country_na', 'Germany'));
+var point = germany.geometry();
+
+// Define start and end years for the time series
+var startYear = 1984;
+var endYear = 2024;
+
+// Define months and quarters
+var months = [
+  {name: 'Jan', start: '-01-01', end: '-01-31'},
+  {name: 'Feb', start: '-02-01', end: '-02-28'},
+  {name: 'Mar', start: '-03-01', end: '-03-31'},
+  {name: 'Apr', start: '-04-01', end: '-04-30'},
+  {name: 'May', start: '-05-01', end: '-05-31'},
+  {name: 'Jun', start: '-06-01', end: '-06-30'},
+  {name: 'Jul', start: '-07-01', end: '-07-31'},
+  {name: 'Aug', start: '-08-01', end: '-08-31'},
+  {name: 'Sep', start: '-09-01', end: '-09-30'},
+  {name: 'Oct', start: '-10-01', end: '-10-31'},
+  {name: 'Nov', start: '-11-01', end: '-11-30'},
+  {name: 'Dec', start: '-12-01', end: '-12-31'}
+];
+
+var quarters = [
+  {name: 'Q1', startMonth: '01', endMonth: '03', endDay: '31'},
+  {name: 'Q2', startMonth: '04', endMonth: '06', endDay: '30'},
+  {name: 'Q3', startMonth: '07', endMonth: '09', endDay: '30'},
+  {name: 'Q4', startMonth: '10', endMonth: '12', endDay: '31'}
+];
+
+// Function to calculate monthly or quarterly NDVI
+function calculateNDVIData(imageCollection, intervalType) {
+  var ndviValues = [];
+
+  for (var year = startYear; year <= endYear; year++) {
+    var intervals = (intervalType === 'monthly') ? months : quarters;
+
+    for (var i = 0; i < intervals.length; i++) {
+      var interval = intervals[i];
+      var startDate, endDate;
+
+      if (intervalType === 'monthly') {
+        startDate = year + interval.start;
+        endDate = year + interval.end;
+      } else { // Quarterly
+        startDate = year + '-' + interval.startMonth + '-01';
+        endDate = year + '-' + interval.endMonth + '-' + interval.endDay;
+      }
+
+      var filteredImages = imageCollection.filterBounds(germany.geometry())
+        .filterDate(startDate, endDate)
+        .filter(ee.Filter.lt('CLOUD_COVER', 15))
+        .sort('CLOUD_COVER');
+
+      if (filteredImages.size().getInfo() === 0) {
+        print('No images available for', startDate, 'to', endDate);
+        continue;
+      }
+
+      var mosaic = filteredImages.mosaic();
+      var ndvi = mosaic.normalizedDifference(['B5', 'B4']).rename('NDVI')
+                        .set('year', year)
+                        .set(intervalType, interval.name)
+                        .set('system:time_start', ee.Date(startDate).millis());
+
+      var meanNdvi = ndvi.reduceRegion({
+        reducer: ee.Reducer.mean(),
+        geometry: germany.geometry(),
+        scale: 500,
+        maxPixels: 1e9
+      });
+
+      ndviValues.push(ee.Feature(null, {
+        'year': year,
+        intervalType: interval.name,
+        'mean_NDVI': meanNdvi.get('NDVI'),
+        'time': ee.Date(startDate).millis()
+      }));
+    }
+  }
+
+  return ee.FeatureCollection(ndviValues);
+}
+
+// Collect NDVI data for monthly and quarterly intervals from Landsat 5 and Landsat 8
+var monthlyNDVI_L5 = calculateNDVIData(l5, 'monthly');
+var quarterlyNDVI_L5 = calculateNDVIData(l5, 'quarterly');
+var monthlyNDVI_L8 = calculateNDVIData(l8, 'monthly');
+var quarterlyNDVI_L8 = calculateNDVIData(l8, 'quarterly');
+
+// Export each dataset to Google Drive as CSV files
+Export.table.toDrive({
+  collection: monthlyNDVI_L5,
+  description: 'Germany_Monthly_NDVI_L5',
+  fileFormat: 'CSV'
+});
+
+Export.table.toDrive({
+  collection: quarterlyNDVI_L5,
+  description: 'Germany_Quarterly_NDVI_L5',
+  fileFormat: 'CSV'
+});
+
+Export.table.toDrive({
+  collection: monthlyNDVI_L8,
+  description: 'Germany_Monthly_NDVI_L8',
+  fileFormat: 'CSV'
+});
+
+Export.table.toDrive({
+  collection: quarterlyNDVI_L8,
+  description: 'Germany_Quarterly_NDVI_L8',
+  fileFormat: 'CSV'
+});

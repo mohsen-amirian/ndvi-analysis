@@ -1,0 +1,102 @@
+var countries = ee.FeatureCollection("USDOS/LSIB_SIMPLE/2017"),
+    l8 = ee.ImageCollection("LANDSAT/LC08/C02/T1_TOA"),
+    l5 = ee.ImageCollection("LANDSAT/LT05/C02/T1_TOA");
+
+var germany = countries.filter(ee.Filter.eq('country_na', 'Germany'));
+var point = germany.geometry();
+
+// Define start and end years for the time series
+var startYear = 1984;
+var endYear = 2024;
+
+// Define months
+var months = [
+  {name: 'Jan', start: '-01-01', end: '-01-31'},
+  {name: 'Feb', start: '-02-01', end: '-02-28'},
+  {name: 'Mar', start: '-03-01', end: '-03-31'},
+  {name: 'Apr', start: '-04-01', end: '-04-30'},
+  {name: 'May', start: '-05-01', end: '-05-31'},
+  {name: 'Jun', start: '-06-01', end: '-06-30'},
+  {name: 'Jul', start: '-07-01', end: '-07-31'},
+  {name: 'Aug', start: '-08-01', end: '-08-31'},
+  {name: 'Sep', start: '-09-01', end: '-09-30'},
+  {name: 'Oct', start: '-10-01', end: '-10-31'},
+  {name: 'Nov', start: '-11-01', end: '-11-30'},
+  {name: 'Dec', start: '-12-01', end: '-12-31'}
+];
+
+
+// Initialize a list to hold NDVI images for each quarter
+var ndviValues = [];
+
+// Iterate through each year and quarter
+for (var year = startYear; year <= endYear; year++) {
+  for (var m = 0; m < months.length; m++) {
+    // Define start and end dates for each month
+    var startDate = year + months[m].start;
+    var endDate = year + months[m].end;
+
+    // Filter images for the specified date range and area
+    var imageCol = l5.filterBounds(germany.geometry())
+      .filterDate(startDate, endDate)
+      .filter(ee.Filter.lt('CLOUD_COVER', 15))
+      .sort('CLOUD_COVER');
+      
+    // Check if the collection is empty
+    if (imageCol.size().getInfo() === 0) {
+      print('No images available for', startDate, 'to', endDate);
+      continue;  // Skip this month if no images are available
+    }
+    
+    // Create a mosaic and calculate NDVI for the quarter
+    var mosaic = imageCol.mosaic();
+    var ndvi = mosaic.normalizedDifference(['B5', 'B4']).rename('NDVI')
+                      .set('year', year).set('month', months[m].name)
+                      .set('system:time_start', ee.Date(startDate).millis());
+    
+    // Calculate the mean NDVI over Germany for this quarter
+    var meanNdvi = ndvi.reduceRegion({
+      reducer: ee.Reducer.mean(),
+      geometry: germany.geometry(),
+      scale: 500,  // Adjust scale as necessary
+      maxPixels: 1e9
+    });
+
+    // Add the mean NDVI value to the list
+    ndviValues.push(ee.Feature(null, {
+      'year': year,
+      'month': months[m].name,
+      'mean_NDVI': meanNdvi.get('NDVI'),
+      'time': ee.Date(startDate).millis()
+    }));
+  }
+}
+
+// Convert list of NDVI values to a FeatureCollection
+var ndviCollection = ee.FeatureCollection(ndviValues);
+
+// Create a time series chart
+var ndviTimeSeriesChart = ui.Chart.feature.byFeature({
+  features: ndviCollection,
+  xProperty: 'time',
+  yProperties: ['mean_NDVI']
+})
+.setOptions({
+  title: 'NDVI Time Series for Germany',
+  hAxis: {title: 'Date', format: 'yyyy-MM'},
+  vAxis: {title: 'Mean NDVI', viewWindow: {min: -1, max: 1}},
+  lineWidth: 1,
+  pointSize: 3,
+  series: {
+    0: {color: 'green'}
+  }
+});
+
+// Print the chart to the console
+//print(ndviTimeSeriesChart);
+
+Export.table.toDrive({
+  collection: ndviCollection,
+  description: 'Germany_Monthly_NDVI_L5',
+  fileFormat: 'CSV'
+});
