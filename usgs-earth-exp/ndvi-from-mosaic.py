@@ -3,22 +3,22 @@ import numpy as np
 
 def compute_ndvi(red_band_path, nir_band_path, output_ndvi_path):
     """
-    Computes NDVI from Red (B4) and NIR (B5) band mosaics and saves the output as a GeoTIFF.
+    Computes NDVI from Red (B3) and NIR (B4) band mosaics for Landsat 5 and saves the output as a GeoTIFF.
 
     Parameters:
-    - red_band_path: Path to the Red band (B4) mosaic.
-    - nir_band_path: Path to the NIR band (B5) mosaic.
+    - red_band_path: Path to the Red band (B3) mosaic.
+    - nir_band_path: Path to the NIR band (B4) mosaic.
     - output_ndvi_path: Path to save the computed NDVI raster.
     """
-
-    # Open the Red (B4) and NIR (B5) mosaics
+    print('Started ..')
+    # Open the Red (B3) and NIR (B4) mosaics
     with rasterio.open(red_band_path) as red, rasterio.open(nir_band_path) as nir:
-        B4 = red.read(1).astype(np.float32)  # Read Red band
-        B5 = nir.read(1).astype(np.float32)  # Read NIR band
+        B3 = red.read(1).astype(np.float32)  # Red Band (B3)
+        B4 = nir.read(1).astype(np.float32)  # NIR Band (B4)
 
         # Ensure no division by zero: NDVI = (NIR - Red) / (NIR + Red)
         np.seterr(divide='ignore', invalid='ignore')  # Ignore division warnings
-        ndvi = (B5 - B4) / (B5 + B4)
+        ndvi = (B4 - B3) / (B4 + B3)
 
         # Handle NaNs and set nodata value (-9999 for consistency)
         ndvi[np.isnan(ndvi)] = -9999
@@ -28,7 +28,8 @@ def compute_ndvi(red_band_path, nir_band_path, output_ndvi_path):
         out_meta.update({
             "driver": "GTiff",
             "dtype": "float32",  # NDVI values are float
-            "compress": "LZW"    # Lossless compression
+            "compress": "LZW",    # Lossless compression
+            "nodata": -9999       # Set nodata value
         })
 
         # Save NDVI raster
@@ -37,5 +38,13 @@ def compute_ndvi(red_band_path, nir_band_path, output_ndvi_path):
 
     print(f"✅ NDVI saved successfully: {output_ndvi_path}")
 
+#L5 and L7
+# red B3 
+# NIR B4 
+
+#L8
+# red B4 
+# NIR B5 
+
 # Example usage
-compute_ndvi("Mosaic_2024_Spring_B4.tif", "Mosaic_2024_Spring_B5.tif", "NDVI_Spring_2024.tif")
+compute_ndvi("C:\\Mohsen\\temp-usgs\\_mosaics\\1986_Fall_B3.tif", "C:\\Mohsen\\temp-usgs\\_mosaics\\1986_Fall_B4.tif", "1986_Fall_NDVI.tif")
