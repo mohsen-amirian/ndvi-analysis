@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 LAT_MIN, LAT_MAX = 47, 55  # Latitude range for Germany
 LON_MIN, LON_MAX = 5, 15   # Longitude range for Germany
 
-DATA_FOLDER = "last-40-years-data"  # Folder where .nc files are stored
+DATA_FOLDER = "40-years-prep"  # Folder where .nc files are stored
 
 def load_and_filter_precipitation(nc_files):
     """Loads precipitation data from NetCDF files and filters for Germany."""
