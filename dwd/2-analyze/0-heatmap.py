@@ -4,7 +4,7 @@ import seaborn as sns
 import os
 
 # Define file path (adjust if necessary)
-file_path = "dwd\\preprocess\\data-clipped-to-de-states\\merged_precipitation.csv"
+file_path = "dwd\\0-data\\1-data-clipped-to-de-states\\merged_precipitation.csv"
 
 df_precip_all = pd.read_csv(file_path)
 

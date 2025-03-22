@@ -4,7 +4,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 # Folder containing the CSV files
-csv_folder = "dwd-temp\\data\\output_csv"
+csv_folder = "dwd-temp\\data\\1-final-data-state-name"
 
 # Get all CSV files
 csv_files = sorted([f for f in os.listdir(csv_folder) if f.endswith(".csv")])
@@ -38,7 +38,7 @@ plt.xlabel("Year", fontsize=12)
 plt.ylabel("State", fontsize=12)
 
 # Save heatmap as PNG
-#plt.savefig("temperature_heatmap.png", dpi=300, bbox_inches="tight")
+plt.savefig("temperature_heatmap.png", dpi=300, bbox_inches="tight")
 plt.show()
 
 print("\n✅ Heatmap saved as 'temperature_heatmap.png'")

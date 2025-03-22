@@ -4,9 +4,25 @@ import pandas as pd
 import matplotlib.colors as mcolors
 
 # Load NDVI data from a CSV file
-ndvi_df = pd.read_csv("usgs\\analyze\\data\\ndvi_full_df.csv")
+ndvi_df = pd.read_csv("usgs\\0-data\\ndvi_full_df.csv")
 
 # 🔹 Visualization 🔹
+
+
+# Compute mean NDVI per year across all states
+ndvi_trend = ndvi_df.groupby("year")["mean_ndvi"].mean()
+
+# Plot the overall NDVI trend
+plt.figure(figsize=(10, 5))
+plt.plot(ndvi_trend.index, ndvi_trend.values, marker='o', linestyle='-', linewidth=2)
+plt.xlabel("Year")
+plt.ylabel("Mean NDVI")
+plt.title("NDVI Trend Over Time (1985–2024)")
+plt.grid(True)
+
+# Show plot
+plt.show()
+
 
 # 🎯 A. Line Plot: NDVI Trend Over Time (Grouped by State)
 plt.figure(figsize=(12, 6))
